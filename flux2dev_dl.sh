@@ -3,65 +3,17 @@
 COMFY_ROOT="/workspace/ComfyUI"
 CUSTOM_NODES="${COMFY_ROOT}/custom_nodes"
 
-# ── Setup hf_transfer ─────────────────────────────────────────────────────────
+# ── Auth check ────────────────────────────────────────────────────────────────
 
-echo "========================================"
-echo " Setting up hf_transfer"
-echo "========================================"
-
-/venv/main/bin/python -m uv pip install hf-transfer huggingface_hub --quiet
-export HF_HUB_ENABLE_HF_TRANSFER=1
-
-# Use HF token if set in env (add HF_TOKEN to your template env vars for auth)
 if [ -n "$HF_TOKEN" ]; then
-    echo "[AUTH] Using HuggingFace token"
-    export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN"
+    echo "[AUTH] HuggingFace token found — using authenticated downloads"
 else
-    echo "[AUTH] No HF_TOKEN set — downloading anonymously"
+    echo "[AUTH] No HF_TOKEN set — downloading anonymously (may be slower)"
 fi
 
 # ── Helper ────────────────────────────────────────────────────────────────────
 
-hf_download() {
-    local repo="$1"
-    local filepath="$2"
-    local dest_dir="$3"
-    local filename="$4"
-    local size="$5"
-    local out="${dest_dir}/${filename}"
-
-    mkdir -p "$dest_dir"
-
-    if [ -f "$out" ]; then
-        echo "[SKIP] Already exists: $out"
-        return
-    fi
-
-    echo ""
-    echo "[DOWNLOADING] ${filename} (${size})"
-    echo "  repo: ${repo}"
-    echo "  → ${out}"
-
-    /venv/main/bin/python -c "
-from huggingface_hub import hf_hub_download
-import shutil, os
-path = hf_hub_download(
-    repo_id='${repo}',
-    filename='${filepath}',
-    local_dir='/tmp/hf_cache',
-)
-os.makedirs('${dest_dir}', exist_ok=True)
-shutil.move(path, '${out}')
-print('[DONE] ${filename}')
-"
-    if [ $? -ne 0 ]; then
-        echo "[FAILED] ${filename}"
-        rm -f "$out"
-    fi
-}
-
-# Fallback wget for non-HF URLs
-wget_download() {
+download() {
     local url="$1"
     local dest_dir="$2"
     local filename="$3"
@@ -79,9 +31,15 @@ wget_download() {
     echo "[DOWNLOADING] ${filename} (${size})"
     echo "  → ${out}"
 
+    local auth_header=""
+    if [ -n "$HF_TOKEN" ]; then
+        auth_header="--header=Authorization: Bearer ${HF_TOKEN}"
+    fi
+
     wget -c \
         --progress=dot:giga \
         --output-file=/dev/stderr \
+        ${auth_header:+"$auth_header"} \
         -O "$out" \
         "$url" 2>&1
 
@@ -141,41 +99,35 @@ patch_flux2fun() {
 
 # ── Models ────────────────────────────────────────────────────────────────────
 
-echo ""
 echo "========================================"
-echo " Flux 2 Dev model downloads (hf_transfer)"
+echo " Flux 2 Dev model downloads"
 echo "========================================"
 
-hf_download \
-    "Comfy-Org/flux2-dev" \
-    "split_files/diffusion_models/flux2_dev_fp8mixed.safetensors" \
+download \
+    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors" \
     "${COMFY_ROOT}/models/diffusion_models" \
     "flux2_dev_fp8mixed.safetensors" \
     "33 GB"
 
-hf_download \
-    "Comfy-Org/flux2-dev" \
-    "split_files/loras/Flux2TurboComfyv2.safetensors" \
+download \
+    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/loras/Flux2TurboComfyv2.safetensors" \
     "${COMFY_ROOT}/models/loras" \
     "Flux2TurboComfyv2.safetensors" \
     "2.57 GB"
 
-hf_download \
-    "Comfy-Org/flux2-dev" \
-    "split_files/text_encoders/mistral_3_small_flux2_fp8.safetensors" \
+download \
+    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_fp8.safetensors" \
     "${COMFY_ROOT}/models/text_encoders" \
     "mistral_3_small_flux2_fp8.safetensors" \
     "16.8 GB"
 
-hf_download \
-    "Comfy-Org/flux2-dev" \
-    "split_files/vae/flux2-vae.safetensors" \
+download \
+    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors" \
     "${COMFY_ROOT}/models/vae" \
     "flux2-vae.safetensors" \
     "320 MB"
 
-# Alibaba repo — use wget as fallback since it may not support hf_transfer well
-wget_download \
+download \
     "https://huggingface.co/alibaba-pai/FLUX.2-dev-Fun-Controlnet-Union/resolve/main/FLUX.2-dev-Fun-Controlnet-Union-2602.safetensors" \
     "${COMFY_ROOT}/models/controlnet" \
     "FLUX.2-dev-Fun-Controlnet-Union-2602.safetensors" \
