@@ -2,6 +2,7 @@
 
 COMFY_ROOT="/workspace/ComfyUI"
 CUSTOM_NODES="${COMFY_ROOT}/custom_nodes"
+LOG="/workspace/download.log"
 
 # ── Auth check ────────────────────────────────────────────────────────────────
 
@@ -36,12 +37,10 @@ download() {
         auth_header="--header=Authorization: Bearer ${HF_TOKEN}"
     fi
 
-    wget -c \
-        --progress=dot:giga \
-        --output-file=/dev/stderr \
+    wget -c --progress=bar:force \
         ${auth_header:+"$auth_header"} \
         -O "$out" \
-        "$url" 2>&1
+        "$url"
 
     if [ $? -eq 0 ]; then
         echo "[DONE] ${filename}"
@@ -82,12 +81,15 @@ patch_flux2fun() {
         return
     fi
 
+    # Check if already patched
     if grep -q "timestep_zero_index=None" "$patch_file"; then
         echo "[SKIP] flux_patch.py already patched"
         return
     fi
 
     echo "[PATCHING] Adding timestep_zero_index=None to patched_forward_orig..."
+
+    # Replace the function signature — insert timestep_zero_index=None before transformer_options
     sed -i 's/transformer_options={},/timestep_zero_index=None,\n        transformer_options={},/' "$patch_file"
 
     if grep -q "timestep_zero_index=None" "$patch_file"; then
