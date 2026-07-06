@@ -75,27 +75,38 @@ install_custom_node() {
 
 patch_flux2fun() {
     local patch_file="${CUSTOM_NODES}/comfyui-flux2fun-controlnet/flux_patch.py"
+    local nodes_file="${CUSTOM_NODES}/comfyui-flux2fun-controlnet/nodes.py"
 
+    # ── Patch 1: timestep_zero_index in flux_patch.py ─────────────────────────
     if [ ! -f "$patch_file" ]; then
-        echo "[SKIP] flux_patch.py not found, skipping patch"
-        return
-    fi
-
-    # Check if already patched
-    if grep -q "timestep_zero_index=None" "$patch_file"; then
-        echo "[SKIP] flux_patch.py already patched"
-        return
-    fi
-
-    echo "[PATCHING] Adding timestep_zero_index=None to patched_forward_orig..."
-
-    # Replace the function signature — insert timestep_zero_index=None before transformer_options
-    sed -i 's/transformer_options={},/timestep_zero_index=None,\n        transformer_options={},/' "$patch_file"
-
-    if grep -q "timestep_zero_index=None" "$patch_file"; then
-        echo "[DONE] flux_patch.py patched successfully"
+        echo "[SKIP] flux_patch.py not found, skipping patch 1"
+    elif grep -q "timestep_zero_index=None" "$patch_file"; then
+        echo "[SKIP] flux_patch.py already patched (timestep_zero_index)"
     else
-        echo "[FAILED] Patch did not apply — check flux_patch.py manually"
+        echo "[PATCHING] Adding timestep_zero_index=None to patched_forward_orig..."
+        sed -i 's/transformer_options={},/timestep_zero_index=None,\n        transformer_options={},/' "$patch_file"
+
+        if grep -q "timestep_zero_index=None" "$patch_file"; then
+            echo "[DONE] flux_patch.py patched successfully"
+        else
+            echo "[FAILED] flux_patch.py patch did not apply — check manually"
+        fi
+    fi
+
+    # ── Patch 2: multigpu_clones in nodes.py ──────────────────────────────────
+    if [ ! -f "$nodes_file" ]; then
+        echo "[SKIP] nodes.py not found, skipping patch 2"
+    elif grep -q "multigpu_clones" "$nodes_file"; then
+        echo "[SKIP] nodes.py already patched (multigpu_clones)"
+    else
+        echo "[PATCHING] Adding multigpu_clones to ControlNetWrapper..."
+        sed -i 's/class ControlNetWrapper:/class ControlNetWrapper:\n    multigpu_clones = {}/' "$nodes_file"
+
+        if grep -q "multigpu_clones" "$nodes_file"; then
+            echo "[DONE] nodes.py patched successfully"
+        else
+            echo "[FAILED] nodes.py patch did not apply — check manually"
+        fi
     fi
 }
 
