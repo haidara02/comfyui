@@ -110,7 +110,7 @@ patch_flux2fun() {
     fi
 }
 
-# ── Models ────────────────────────────────────────────────────────────────────
+# ── Flux 2 Dev models ─────────────────────────────────────────────────────────
 
 echo "========================================"
 echo " Flux 2 Dev model downloads"
@@ -145,6 +145,56 @@ download \
     "${COMFY_ROOT}/models/controlnet" \
     "FLUX.2-dev-Fun-Controlnet-Union-2602.safetensors" \
     "~3.6 GB"
+
+# ── Z Image Turbo models ──────────────────────────────────────────────────────
+
+echo ""
+echo "========================================"
+echo " Z Image Turbo model downloads"
+echo "========================================"
+
+download \
+    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/diffusion_models/z_image_turbo_bf16.safetensors" \
+    "${COMFY_ROOT}/models/diffusion_models" \
+    "z_image_turbo_bf16.safetensors" \
+    "11.5 GB"
+
+download \
+    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/text_encoders/qwen_3_4b.safetensors" \
+    "${COMFY_ROOT}/models/text_encoders" \
+    "qwen_3_4b.safetensors" \
+    "7.5 GB"
+
+download \
+    "https://huggingface.co/Comfy-Org/z_image_turbo/resolve/main/split_files/vae/ae.safetensors" \
+    "${COMFY_ROOT}/models/vae" \
+    "ae.safetensors" \
+    "320 MB"
+
+# ── Upscale models ────────────────────────────────────────────────────────────
+
+echo ""
+echo "========================================"
+echo " Upscale model downloads"
+echo "========================================"
+
+download \
+    "https://github.com/Derpiesaurus/models/releases/download/v2.0_HQ/2x_StarSample_V2.0_HQ.safetensors" \
+    "${COMFY_ROOT}/models/upscale_models" \
+    "2x_StarSample_V2.0_HQ.safetensors" \
+    "157 MB"
+
+download \
+    "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/main/RealESRGAN_x4plus.safetensors" \
+    "${COMFY_ROOT}/models/upscale_models" \
+    "RealESRGAN_x4plus.safetensors" \
+    "64 MB"
+
+download \
+    "https://huggingface.co/Kim2091/UltraSharpV2/resolve/main/4x-UltraSharpV2.safetensors" \
+    "${COMFY_ROOT}/models/upscale_models" \
+    "4x-UltraSharpV2.safetensors" \
+    "133 MB"
 
 # ── Custom nodes ──────────────────────────────────────────────────────────────
 
