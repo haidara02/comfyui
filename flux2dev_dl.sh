@@ -117,15 +117,15 @@ echo " Flux 2 Dev model downloads"
 echo "========================================"
 
 download \
-    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors" \
+    "https://huggingface.co/black-forest-labs/FLUX.2-dev/resolve/main/flux2-dev.safetensors" \
     "${COMFY_ROOT}/models/diffusion_models" \
-    "flux2_dev_fp8mixed.safetensors" \
-    "33 GB"
+    "flux2-dev.safetensors" \
+    "~64 GB"
 
 download \
-    "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/loras/Flux2TurboComfyv2.safetensors" \
+    "https://huggingface.co/ByteZSzn/Flux.2-Turbo-ComfyUI/resolve/main/Flux_2-Turbo-LoRA_comfyui.safetensors" \
     "${COMFY_ROOT}/models/loras" \
-    "Flux2TurboComfyv2.safetensors" \
+    "Flux_2-Turbo-LoRA_comfyui.safetensors" \
     "2.57 GB"
 
 download \
