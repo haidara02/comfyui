@@ -6,8 +6,19 @@ LOG="/workspace/download.log"
 
 # ── Auth check ────────────────────────────────────────────────────────────────
 
+# Strip stray whitespace/quotes that often sneak in when pasting into Vast env vars
+HF_TOKEN="$(printf '%s' "$HF_TOKEN" | tr -d "[:space:]\"'")"
+
 if [ -n "$HF_TOKEN" ]; then
-    echo "[AUTH] HuggingFace token found — using authenticated downloads"
+    # An invalid token makes HF return 401 even for public repos, so verify it first
+    if wget -q -O /dev/null --header="Authorization: Bearer ${HF_TOKEN}" \
+        "https://huggingface.co/api/whoami-v2"; then
+        echo "[AUTH] HuggingFace token valid — using authenticated downloads"
+    else
+        echo "[AUTH] HuggingFace token INVALID (401) — falling back to anonymous downloads"
+        echo "       Regenerate it at https://huggingface.co/settings/tokens and update HF_TOKEN in Vast"
+        HF_TOKEN=""
+    fi
 else
     echo "[AUTH] No HF_TOKEN set — downloading anonymously (may be slower)"
 fi
