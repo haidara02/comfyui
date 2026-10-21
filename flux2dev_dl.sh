@@ -222,6 +222,21 @@ install_custom_node \
     "https://github.com/bryanmcguire/comfyui-flux2fun-controlnet" \
     "comfyui-flux2fun-controlnet"
 
+# Background removal (BiRefNet); models auto-download to models/RMBG on first use
+install_custom_node \
+    "https://github.com/1038lab/ComfyUI-RMBG" \
+    "ComfyUI-RMBG"
+
+# Folder batch loading (Load Image List From Dir)
+install_custom_node \
+    "https://github.com/ltdrdata/ComfyUI-Inspire-Pack" \
+    "ComfyUI-Inspire-Pack"
+
+# Raster → SVG (vtracer)
+install_custom_node \
+    "https://github.com/Yanick112/ComfyUI-ToSVG" \
+    "ComfyUI-ToSVG"
+
 # ── Patch ─────────────────────────────────────────────────────────────────────
 
 echo ""

@@ -3,16 +3,73 @@
 COMFY_ROOT="/workspace/ComfyUI"
 CUSTOM_NODES="${COMFY_ROOT}/custom_nodes"
 LOG="/workspace/download.log"
+R2_BUCKET="${R2_BUCKET:-comfyui-models}"
 
 # ── Auth check ────────────────────────────────────────────────────────────────
 
+# Strip stray whitespace/quotes that often sneak in when pasting into Vast env vars
+HF_TOKEN="$(printf '%s' "$HF_TOKEN" | tr -d "[:space:]\"'")"
+
 if [ -n "$HF_TOKEN" ]; then
-    echo "[AUTH] HuggingFace token found — using authenticated downloads"
+    # An invalid token makes HF return 401 even for public repos, so verify it first
+    if wget -q -O /dev/null --header="Authorization: Bearer ${HF_TOKEN}" \
+        "https://huggingface.co/api/whoami-v2"; then
+        echo "[AUTH] HuggingFace token valid — using authenticated downloads"
+    else
+        echo "[AUTH] HuggingFace token INVALID (401) — falling back to anonymous downloads"
+        echo "       Regenerate it at https://huggingface.co/settings/tokens and update HF_TOKEN in Vast"
+        HF_TOKEN=""
+    fi
 else
     echo "[AUTH] No HF_TOKEN set — downloading anonymously (may be slower)"
 fi
 
 # ── Helper ────────────────────────────────────────────────────────────────────
+
+install_rclone() {
+    command -v rclone >/dev/null && return 0
+
+    local arch
+    case "$(uname -m)" in
+        x86_64)  arch="amd64" ;;
+        aarch64) arch="arm64" ;;
+        *) echo "[R2] Unsupported architecture $(uname -m)"; return 1 ;;
+    esac
+
+    echo "[R2] Installing rclone..."
+    local tmp
+    tmp="$(mktemp -d)"
+    wget -q -O "${tmp}/rclone.zip" "https://downloads.rclone.org/rclone-current-linux-${arch}.zip" \
+        && python3 -m zipfile -e "${tmp}/rclone.zip" "${tmp}" \
+        && install -m 755 "${tmp}"/rclone-*/rclone /usr/local/bin/rclone
+    local status=$?
+    rm -rf "$tmp"
+    return $status
+}
+
+# Pull cached models from Cloudflare R2. The HF downloads below then skip whatever R2 supplied.
+# Args are rclone --include filters, so each template only pulls the models it uses
+# (the bucket is shared with the Flux template).
+r2_pull() {
+    if [ -z "$RCLONE_CONFIG_R2_ENDPOINT" ] || [ -z "$RCLONE_CONFIG_R2_ACCESS_KEY_ID" ]; then
+        echo "[R2] No R2 credentials set — skipping cache, downloading from source"
+        return
+    fi
+
+    install_rclone || { echo "[R2] rclone install failed — downloading from source"; return; }
+
+    echo ""
+    echo "[R2] Pulling models from r2:${R2_BUCKET}/models ..."
+    rclone copy "r2:${R2_BUCKET}/models" "${COMFY_ROOT}/models" "$@" \
+        --transfers 4 --multi-thread-streams 8 \
+        --stats 30s --stats-one-line
+
+    if [ $? -eq 0 ]; then
+        echo "[R2] Pull complete"
+    else
+        echo "[R2] Pull failed — missing files will be downloaded from source"
+    fi
+}
 
 download() {
     local url="$1"
@@ -72,6 +129,19 @@ install_custom_node() {
 
     echo "[DONE] ${node_dir}"
 }
+
+# ── R2 model cache ────────────────────────────────────────────────────────────
+
+echo "========================================"
+echo " R2 model cache"
+echo "========================================"
+
+r2_pull \
+    --include "/diffusion_models/z_image_turbo_bf16.safetensors" \
+    --include "/text_encoders/qwen_3_4b.safetensors" \
+    --include "/vae/ae.safetensors" \
+    --include "/upscale_models/**" \
+    --include "/RMBG/**"
 
 # ── Z Image Turbo models ──────────────────────────────────────────────────────
 
@@ -139,6 +209,22 @@ echo "========================================"
 install_custom_node \
     "https://github.com/Fannovel16/comfyui_controlnet_aux" \
     "comfyui_controlnet_aux"
+
+# Background removal (BiRefNet); models auto-download to models/RMBG on first use
+# unless already pulled from R2
+install_custom_node \
+    "https://github.com/1038lab/ComfyUI-RMBG" \
+    "ComfyUI-RMBG"
+
+# Folder batch loading (Load Image List From Dir)
+install_custom_node \
+    "https://github.com/ltdrdata/ComfyUI-Inspire-Pack" \
+    "ComfyUI-Inspire-Pack"
+
+# Raster → SVG (vtracer); muted in the workflows but needed for them to load cleanly
+install_custom_node \
+    "https://github.com/Yanick112/ComfyUI-ToSVG" \
+    "ComfyUI-ToSVG"
 
 echo ""
 echo "========================================"
