@@ -199,6 +199,23 @@ download \
     "4x-UltraSharpV2.safetensors" \
     "133 MB"
 
+# ── Background removal model ──────────────────────────────────────────────────
+# Same files ComfyUI-RMBG would fetch on first use; pre-downloading lets R2 cache them
+
+echo ""
+echo "========================================"
+echo " Background removal model (BiRefNet-HR-matting)"
+echo "========================================"
+
+BIREFNET_DIR="${COMFY_ROOT}/models/RMBG/BiRefNet"
+for f in BiRefNet-HR-matting.safetensors birefnet.py BiRefNet_config.py config.json; do
+    download \
+        "https://huggingface.co/1038lab/BiRefNet/resolve/main/${f}" \
+        "$BIREFNET_DIR" \
+        "$f" \
+        "$([ "$f" = "BiRefNet-HR-matting.safetensors" ] && echo "445 MB" || echo "<1 MB")"
+done
+
 # ── Custom nodes ──────────────────────────────────────────────────────────────
 
 echo ""
